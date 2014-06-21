@@ -124,12 +124,17 @@ public class AbstractActivity extends Activity {
 				});
 	}
 
+	protected void addMenuOptions(Menu menu) {
+		// does nothin
+	}
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// addBackupRestoreOptionsMenu(menu);
 		addUserSettingMenu(menu);
 		addAboutmsoraMenu(menu);
 		addLogoutOptions(menu);
+		addMenuOptions(menu);
 		return super.onCreateOptionsMenu(menu);
 	}
 

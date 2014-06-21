@@ -3,12 +3,16 @@ package com.variance.msora.ui;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.MenuItem.OnMenuItemClickListener;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
@@ -290,5 +294,52 @@ public class UserSettingActivity extends AbstractActivity {
 	public void handleAboutmsora(View view) {
 		PhonebookActivity.startGeneralActivity(this, "About Msora",
 				AboutActivity.class, R.layout.usercontact_tabview);
+	}
+
+	@Override
+	protected void addMenuOptions(Menu menu) {
+		MenuItem userSettingMenuItem = menu.add("Clear Cache");
+		userSettingMenuItem.setIcon(R.drawable.mimi_connect_delete);
+		userSettingMenuItem
+				.setOnMenuItemClickListener(new OnMenuItemClickListener() {
+
+					public boolean onMenuItemClick(MenuItem item) {
+						PhonebookActivity
+								.showYesOrNoOption(
+										UserSettingActivity.this,
+										"Are you sure you want to clear your contact cache?",
+										"Clear Cache",
+										new OnRequestComplete<Boolean>() {
+											@Override
+											public void requestComplete(
+													Boolean result) {
+												if (result != null && result) {
+													new AsyncTask<Void, Void, Void>() {
+														protected void onPreExecute() {
+															PersonalPhonebookActivity
+																	.showProgress(
+																			"Please ....",
+																			UserSettingActivity.this);
+														};
+
+														protected void onPostExecute(
+																Void result) {
+															PersonalPhonebookActivity
+																	.endProgress();
+														};
+
+														protected Void doInBackground(
+																Void... params) {
+															GeneralManager
+																	.clearCache();
+															return null;
+														};
+													}.execute(new Void[] {});
+												}
+											}
+										});
+						return true;
+					}
+				});
 	}
 }

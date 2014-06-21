@@ -27,8 +27,7 @@ public class LoginActivity extends Activity {
 		initLogin();
 		initCurrentLocations();
 		// initialize that we are set
-		Settings.setPreference(this,
-				IntentConstants.ON_msora_FINISH_EXTRA,
+		Settings.setPreference(this, IntentConstants.ON_msora_FINISH_EXTRA,
 				false + "");
 		// set the fact that we are away from sign up and hence don't need the
 		// landing page again.
@@ -64,8 +63,8 @@ public class LoginActivity extends Activity {
 
 	private void showAutomaticLogin() {
 		if (GeneralManager.hasAccessibility()) {
-			boolean autoLogin = GeneralManager
-					.getUserSettingOverride().isEnableAutomaticLogin();
+			boolean autoLogin = GeneralManager.getUserSettingOverride()
+					.isEnableAutomaticLogin();
 			((CheckBox) findViewById(R.id.automaticallyLogin))
 					.setChecked(autoLogin);
 		}
@@ -86,7 +85,7 @@ public class LoginActivity extends Activity {
 
 	public void doCheckPassword() {
 		Intent webView = new Intent(Intent.ACTION_VIEW);
-		webView.setData(Uri.parse("http://www.msora.com"));
+		webView.setData(Uri.parse("http://www.m-sora.com"));
 		startActivity(webView);
 	}
 
@@ -97,6 +96,7 @@ public class LoginActivity extends Activity {
 	}
 
 	public void validateUSer(String name, String password, Activity context) {
+		Log.i("Credential:", "" + name + "=" + password);
 		LoginTask task = new LoginTask(name, password, context);
 		task.execute(new String[] { "" });
 	}
@@ -118,8 +118,8 @@ public class LoginActivity extends Activity {
 	@Override
 	public void finish() {
 		// we release the preferences that we are done
-		Settings.setPreference(this,
-				IntentConstants.ON_msora_FINISH_EXTRA, "true");
+		Settings.setPreference(this, IntentConstants.ON_msora_FINISH_EXTRA,
+				"true");
 		super.finish();
 	}
 

@@ -157,7 +157,6 @@ public class ChatManagerImpl {
 			connection.sendPacket(new Presence(Presence.Type.available));
 			return connection;
 		} catch (Exception e) {
-			e.printStackTrace();
 		}
 		return null;
 	}

@@ -12,6 +12,8 @@ import java.util.Vector;
 import android.telephony.gsm.GsmCellLocation;
 import android.util.Log;
 
+import com.anosym.vjax.VXMLBindingException;
+import com.anosym.vjax.VXMLMemberNotFoundException;
 import com.anosym.vjax.v3.VObjectMarshaller;
 import com.anosym.vjax.xml.VDocument;
 import com.variance.msora.call.CallInformation;
@@ -588,32 +590,20 @@ public class DataParser {
 	}
 
 	public static HttpResponseData getHttpResponseData(String response) {
-		String responseStr = get(response, HTTP_RESPONSE);
-		if (responseStr == null) {
-			return null;
+		VObjectMarshaller<HttpResponseData> m = new VObjectMarshaller<HttpResponseData>(
+				HttpResponseData.class);
+		// remove the result portion.
+		int index = response.indexOf("result=");
+		index += "result=".length();
+		String responseStr = response.substring(index).trim();
+		VDocument doc = VDocument.parseDocumentFromString(responseStr);
+		try {
+			HttpResponseData data = m.unmarshall(doc);
+			return data;
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-		String status = get(responseStr, HTTP_RESPONSE_STATUS);
-		String statusValue = get(status, HTTP_RESPONSE_STATUS_VALUE);
-		String message = get(responseStr, HTTP_RESPONSE_MESSAGE);
-		// do we have any extras
-		String extras = get(responseStr, HTTP_RESPONSE_EXTRAS);
-		HttpResponseStatus responseStatus = HttpResponseStatus
-				.valueOf(statusValue);
-		HttpResponseData data = new HttpResponseData(responseStatus, message);
-		if (extras != null) {
-			String[] extrasEntry = getArrayDetails(responseStr,
-					HTTP_RESPONSE_EXTRAS_ENTRY);
-			if (extrasEntry != null && extrasEntry.length > 0) {
-				for (String extra : extrasEntry) {
-					String id = get(extra, HTTP_RESPONSE_EXTRAS_ENTRY_ID);
-					String value = get(extra, HTTP_RESPONSE_EXTRAS_ENTRY_VALUE);
-					if (id != null && value != null) {
-						data.putExtra(id, value);
-					}
-				}
-			}
-		}
-		return data;
+		return null;
 	}
 
 	/**

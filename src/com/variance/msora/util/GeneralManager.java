@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -25,13 +26,19 @@ import com.variance.msora.ui.PersonalPhonebookActivity;
 import com.variance.msora.ui.PhonebookActivity;
 import com.variance.msora.ui.PhonebookType;
 
+@SuppressLint("DefaultLocale")
 public final class GeneralManager {
+	public static interface UserProfileListener {
+		void onUserProfileUpadate(User currentUser);
+	}
+
 	private static volatile UserSetting userSetting;
 	private static UserSetting DEFAULT_USER_SETTING;
 	private static User currentUser;
 	private static Activity context;
 	private static final String PREFERENCE_USER_SETTING_ID = "USERSETTINGS_02832829";
 	private static final String PREFERENCE_USER_INFORMATION_ID = "USERINFORMATION_02832829";
+	private static List<UserProfileListener> listeners = new ArrayList<UserProfileListener>();
 	static {
 		System.setProperty("org.xml.sax.driver",
 				"org.apache.xerces.parsers.SAXParser");
@@ -45,6 +52,10 @@ public final class GeneralManager {
 		} else {
 			initializeDefaults(context);
 		}
+	}
+
+	public static void addUserProfileListener(UserProfileListener listener) {
+		listeners.add(listener);
 	}
 
 	public static void clearSettings() {
@@ -110,10 +121,10 @@ public final class GeneralManager {
 				// do the loading in a synchronized block
 				// this calls should be in this order.
 				loadUserSetting();
-				loadUserProfile();
 				if (currentUser == null) {
 					loadDefaultUserProfile();
 				}
+				loadUserProfile();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -206,7 +217,7 @@ public final class GeneralManager {
 	public static void clearCache() {
 		ContactsStore cache = ContactsStore.getInstance(context);
 		try {
-			cache.clearCache();
+			cache.clearDatabase();
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -384,7 +395,7 @@ public final class GeneralManager {
 						&& result.getResponseStatus() == HttpResponseStatus.SUCCESS) {
 					ArrayList<Contact> contacts = DataParser
 							.getPersonalContacts(result.getMessage());
-					Log.i("loadCacheIfNecessary:", contacts.size() + "");
+					Log.i("syncPrivatePhonebook:", contacts.size() + "");
 					if (contacts != null && !contacts.isEmpty()) {
 						// cache personal contacts
 						ContactsStore cache = ContactsStore
@@ -454,6 +465,11 @@ public final class GeneralManager {
 					if (user != null) {
 						synchronized (GeneralManager.class) {
 							currentUser = user;
+							// we need to inform people about the currently set
+							// user.
+							for (UserProfileListener l : listeners) {
+								l.onUserProfileUpadate(user);
+							}
 						}
 						if (hasAccessibility()) {
 							updateUserInformation();
@@ -515,10 +531,21 @@ public final class GeneralManager {
 		}
 	}
 
-	public synchronized static User getCurrentUser() {
+	public static User getCurrentUser() {
+		if (currentUser == null) {
+			synchronized (GeneralManager.class) {
+				if (currentUser == null) {
+					try {
+						GeneralManager.class.wait(1000);
+					} catch (Exception ex) {
+					}
+				}
+			}
+		}
 		return currentUser;
 	}
 
+	@SuppressLint("DefaultLocale")
 	public synchronized static void deleteContact(Contact contact) {
 		if (hasCurrentPhoneLock()) {
 			ContactsStore cache = null;
@@ -570,6 +597,7 @@ public final class GeneralManager {
 		}
 	}
 
+	@SuppressLint("DefaultLocale")
 	public synchronized static void updateContact(Contact contact) {
 		if (hasCurrentPhoneLock()) {
 			ContactsStore cache = null;

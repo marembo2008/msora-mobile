@@ -3,12 +3,36 @@ package com.variance.msora.response;
 import java.util.HashMap;
 import java.util.Map;
 
+import android.annotation.SuppressLint;
+
+import com.anosym.vjax.annotations.Markup;
+import com.anosym.vjax.annotations.v3.GenericMapType;
+import com.anosym.vjax.converter.v3.Converter;
 import com.variance.msora.util.Utils;
 
 public class HttpResponseData {
+	public static class V1ToV2EnumConverter implements
+			Converter<HttpResponseStatus, String> {
 
+		@Override
+		public String convertFrom(HttpResponseStatus arg0) {
+			return arg0.name();
+		}
+
+		@SuppressLint("DefaultLocale")
+		@Override
+		public HttpResponseStatus convertTo(String arg0) {
+			return !Utils.isNullOrEmpty(arg0) ? HttpResponseStatus.valueOf(arg0
+					.toUpperCase()) : null;
+		}
+
+	}
+
+	@com.anosym.vjax.annotations.v3.Converter(V1ToV2EnumConverter.class)
+	@Markup(name = "status")
 	private HttpResponseStatus responseStatus;
 	private String message;
+	@GenericMapType(key = String.class, value = String.class, entryMarkup = "extra", keyMarkup = "id", valueMarkup = "value")
 	private Map<String, String> extras;
 
 	public HttpResponseData(HttpResponseStatus responseStatus, String message,
@@ -24,6 +48,9 @@ public class HttpResponseData {
 		this.extras = new HashMap<String, String>();
 	}
 
+	public HttpResponseData() {
+	}
+
 	public HttpResponseStatus getResponseStatus() {
 		return responseStatus;
 	}
@@ -33,7 +60,7 @@ public class HttpResponseData {
 	}
 
 	public String getMessage() {
-		if(!Utils.isNullStringOrEmpty(message)){
+		if (!Utils.isNullStringOrEmpty(message)) {
 			message = message.replaceAll("&lt;", "<");
 			message = message.replaceAll("&gt;", ">");
 		}

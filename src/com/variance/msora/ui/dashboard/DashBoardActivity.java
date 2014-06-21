@@ -18,6 +18,7 @@ import com.variance.msora.business.directory.BusinessDirectoryActivity;
 import com.variance.msora.business.meeting.BusinessMeetingActivity;
 import com.variance.msora.c2dm.pack.C2DMSettings;
 import com.variance.msora.chat.ChatManagerImpl;
+import com.variance.msora.contacts.User;
 import com.variance.msora.contacts.business.BusinessContactActivity;
 import com.variance.msora.contacts.business.NewBusinessActivity;
 import com.variance.msora.contacts.task.HttpRequestTask;
@@ -26,25 +27,31 @@ import com.variance.msora.request.HttpRequestManager;
 import com.variance.msora.response.HttpResponseConstants;
 import com.variance.msora.response.HttpResponseData;
 import com.variance.msora.response.HttpResponseStatus;
+import com.variance.msora.ui.AbstractActivity;
 import com.variance.msora.ui.LiveLinkRequestsActivity;
 import com.variance.msora.ui.LoginActivity;
-import com.variance.msora.ui.AbstractActivity;
 import com.variance.msora.ui.PersonalPhonebookActivity;
 import com.variance.msora.ui.PhonebookActivity;
 import com.variance.msora.ui.ProfileActivity;
 import com.variance.msora.ui.contact.DiscoveryActivity;
 import com.variance.msora.util.GeneralManager;
+import com.variance.msora.util.GeneralManager.UserProfileListener;
 import com.variance.msora.util.Settings;
 import com.variance.msora.util.UserSetting;
 import com.variance.msora.util.Utils;
 
-public class DashBoardActivity extends AbstractActivity {
+public class DashBoardActivity extends AbstractActivity implements
+		UserProfileListener {
 	public static DashBoardActivity DASH_BOARD_ACTIVITY;
 	private ChatManagerImpl chatManager;
 	private volatile boolean hasBusinessPhonebook;
 	private volatile String businessName;
 	private static final String BUSINESS_NAME = "_62626_BUSINESS_NAME";
 	private static final String HAS_BUSINESS_PHONEBOOK = "_72732783_HAS_BUSINESS_PHONEBOOK";
+
+	@Override
+	public void onUserProfileUpadate(User currentUser) {
+	}
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -77,9 +84,11 @@ public class DashBoardActivity extends AbstractActivity {
 	}
 
 	private void init() {
+		// set listener to user profile loading.
+		GeneralManager.addUserProfileListener(this);
 		checkMsoraWalletInstalled();
 		addDashboardControls();
-		domsoraSettingSync();
+		doMsoraSettingSync();
 	}
 
 	public ChatManagerImpl getChatManager() {
@@ -98,12 +107,15 @@ public class DashBoardActivity extends AbstractActivity {
 
 	private String getLocalOfficePhonebookName() {
 		if (GeneralManager.hasAccessibility()) {
-			UserSetting userSetting = GeneralManager
-					.getUserSettingOverride();
-			if (userSetting.isBusinessPhonebookUser()) {
-				String name = userSetting.getBusinessPhonebookName();
-				if (!Utils.isNullStringOrEmpty(name)) {
-					return name;
+			UserSetting userSetting = GeneralManager.getUserSettingOverride();
+			User user = GeneralManager.getCurrentUser();
+			if (user != null && userSetting != null
+					&& user.getUserName().endsWith(userSetting.getUsername())) {
+				if (userSetting.isBusinessPhonebookUser()) {
+					String name = userSetting.getBusinessPhonebookName();
+					if (!Utils.isNullStringOrEmpty(name)) {
+						return name;
+					}
 				}
 			}
 		}
@@ -241,8 +253,6 @@ public class DashBoardActivity extends AbstractActivity {
 					synchronized (DashBoardActivity.this) {
 						if (response != null
 								&& response.getResponseStatus() == HttpResponseStatus.SUCCESS) {
-							Log.i("SessionInitializationListener",
-									response.toString());
 							hasBusinessPhonebook = Boolean
 									.parseBoolean(response.getMessage());
 							if (hasBusinessPhonebook) {
@@ -260,12 +270,12 @@ public class DashBoardActivity extends AbstractActivity {
 									GeneralManager.getUserSetting()
 											.setBusinessPhonebookUser(
 													hasBusinessPhonebook);
-									GeneralManager
-											.updateUserSetting();
+									GeneralManager.updateUserSetting();
 								}
 							}
 						}
-						if (!Utils.isNullOrEmpty(businessName)) {
+						if (hasBusinessPhonebook
+								&& !Utils.isNullOrEmpty(businessName)) {
 							btnCompanyphonebook.setText(businessName);
 						} else {
 							businessName = getLocalOfficePhonebookName();
@@ -305,16 +315,14 @@ public class DashBoardActivity extends AbstractActivity {
 								if (Utils.isNullOrEmpty(businessName)) {
 									businessName = "Office phonebook";
 									hasBusinessPhonebook = false;
-								} else if (GeneralManager
-										.hasAccessibility()) {
+								} else if (GeneralManager.hasAccessibility()) {
 									GeneralManager.getUserSetting()
 											.setBusinessPhonebookName(
 													businessName);
 									GeneralManager.getUserSetting()
 											.setBusinessPhonebookUser(
 													hasBusinessPhonebook);
-									GeneralManager
-											.updateUserSetting();
+									GeneralManager.updateUserSetting();
 								}
 							}
 						}
@@ -443,7 +451,7 @@ public class DashBoardActivity extends AbstractActivity {
 				R.layout.usercontact_tabview, false);
 	}
 
-	private void domsoraSettingSync() {
+	private void doMsoraSettingSync() {
 		if (GeneralManager.hasAccessibility()) {
 			Log.e("domsoraSettingSync", "domsoraSettingSync");
 			doGCMRegistration();
@@ -454,8 +462,7 @@ public class DashBoardActivity extends AbstractActivity {
 
 				public void onTaskCompleted(HttpResponseData data) {
 					String statusSet = data != null ? data
-							.getExtra(Settings.msora_ANDROID_STATUS)
-							: null;
+							.getExtra(Settings.msora_ANDROID_STATUS) : null;
 					if (statusSet != null && statusSet.trim().equals("false")) {
 						HttpRequestManager
 								.doRequest(
@@ -491,13 +498,10 @@ public class DashBoardActivity extends AbstractActivity {
 
 			public void onTaskCompleted(HttpResponseData data) {
 				String statusSet = data != null ? data
-						.getExtra(Settings.msora_GCM_KEY_REGISTERED)
-						: null;
+						.getExtra(Settings.msora_GCM_KEY_REGISTERED) : null;
 				if (statusSet != null && statusSet.trim().equals("false")) {
-					HttpRequestManager
-							.doRequest(
-									Settings.getSigninURL(),
-									Settings.makemsoraSettings(DashBoardActivity.this));
+					HttpRequestManager.doRequest(Settings.getSigninURL(),
+							Settings.makemsoraSettings(DashBoardActivity.this));
 					try {
 						GCMRegistrar.checkDevice(DashBoardActivity.this);
 						GCMRegistrar.checkManifest(DashBoardActivity.this);
@@ -510,10 +514,9 @@ public class DashBoardActivity extends AbstractActivity {
 			}
 
 			public HttpResponseData doTask(Void... params) {
-				return HttpRequestManager
-						.doRequestWithResponseData(
-								Settings.getLiveLinkRegistrationURL(),
-								Settings.makemsoraGCMStatusRequest(DashBoardActivity.this));
+				return HttpRequestManager.doRequestWithResponseData(Settings
+						.getLiveLinkRegistrationURL(), Settings
+						.makemsoraGCMStatusRequest(DashBoardActivity.this));
 			}
 		};
 		new HttpRequestTask<Void, Void, HttpResponseData>(httpRequestTaskHorse,

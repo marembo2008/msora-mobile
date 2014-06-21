@@ -60,7 +60,7 @@ public class DiscoveryTask extends
 			return HttpRequestManager.doRequestWithResponseData(Settings
 					.getDiscoverySearchContactUrl(), Settings
 					.makeDiscoverySearchContactParameter(searchParameter),
-					context);
+					context, 0);
 		} catch (Exception e) {
 			Log.e("log_tag", "Error converting result " + e.toString());
 			return null;

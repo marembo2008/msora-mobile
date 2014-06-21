@@ -1,12 +1,5 @@
 package com.variance.msora.contacts.task;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -16,6 +9,8 @@ import android.widget.Toast;
 import com.google.android.gcm.GCMRegistrar;
 import com.variance.msora.c2dm.pack.C2DMSettings;
 import com.variance.msora.request.HttpRequestManager;
+import com.variance.msora.response.HttpResponseData;
+import com.variance.msora.response.HttpResponseStatus;
 import com.variance.msora.ui.GeneralTabActivity;
 import com.variance.msora.ui.LoginActivity;
 import com.variance.msora.ui.PersonalPhonebookActivity;
@@ -24,8 +19,7 @@ import com.variance.msora.util.GeneralManager;
 import com.variance.msora.util.IntentConstants;
 import com.variance.msora.util.Settings;
 
-public class SignUpTask extends AsyncTask<String, Void, String> {
-	private InputStream is = null;
+public class SignUpTask extends AsyncTask<String, Void, HttpResponseData> {
 	private String user;
 	private String password;
 	private String cpassword;
@@ -57,69 +51,48 @@ public class SignUpTask extends AsyncTask<String, Void, String> {
 	}
 
 	@Override
-	protected String doInBackground(String... url) {
-		String result;
+	protected HttpResponseData doInBackground(String... url) {
 		try {
-			HttpResponse response = HttpRequestManager.doRequestWithResponse(
+			return HttpRequestManager.doSessionlessRequestWithResponseData(
 					Settings.getSignupURL(), Settings.makeSignupParameters(
 							user, email, password, cpassword));
-			HttpEntity entity = response.getEntity();
-			is = entity.getContent();
-			BufferedReader reader = new BufferedReader(
-					new InputStreamReader(is));
-			StringBuilder sb = new StringBuilder();
-			String line = null;
-			while ((line = reader.readLine()) != null) {
-				sb.append(line + "\n");
-			}
-			is.close();
-			result = sb.toString();
-			Log.i("log_tag", "Result: " + result);
 		} catch (Exception e) {
-			result = "";
 			Log.e("log_tag", "Error converting result " + e.toString());
 		}
-		return result;
+		return null;
 	}
 
 	@Override
-	protected void onPostExecute(String result) {
+	protected void onPostExecute(HttpResponseData result) {
 		try {
-			if (result.equals("")) {
+			if (result == null) {
 				Toast.makeText(activity,
 						"Sorry! There is no internet Connection.",
 						Toast.LENGTH_LONG).show();
-			} else {
-				if (result.startsWith("success")) {
-					// we are successfully signed up.
-					activity.finish();
-					Intent intent = new Intent(activity,
-							GeneralTabActivity.class);
-					intent.putExtra(
-							IntentConstants.SIGININ_DO_NOT_START_msora,
-							true);
-					intent.putExtra(
-							IntentConstants.SIGININ_USERNAME, user);
-					intent.putExtra(
-							IntentConstants.SIGININ_PASSWORD,
-							password);
-					String className = PostSignupWizardActivity.class.getName();
-					if (!GeneralManager.hasDefaultAccessibility()) {
-						className = LoginActivity.class.getName();
-					}
-					intent.putExtra(
-							IntentConstants.Msora_PROTECT_ACTIVITY_CLASS,
-							className);
-					activity.startActivity(intent);
-					if (GeneralManager.hasDefaultAccessibility()) {
-						PersonalPhonebookActivity.setShortCut(activity,
-								"Msora");
-					}
-				} else {
-					Toast.makeText(activity,
-							"You are unable to signup: " + result,
-							Toast.LENGTH_LONG).show();
+			} else if (result.getResponseStatus() == HttpResponseStatus.SUCCESS) {
+				Toast.makeText(activity, "You have successfully signed up",
+						Toast.LENGTH_LONG).show();
+				// we are successfully signed up.
+				activity.finish();
+				Intent intent = new Intent(activity, GeneralTabActivity.class);
+				intent.putExtra(IntentConstants.SIGININ_DO_NOT_START_msora,
+						true);
+				intent.putExtra(IntentConstants.SIGININ_USERNAME, user);
+				intent.putExtra(IntentConstants.SIGININ_PASSWORD, password);
+				String className = PostSignupWizardActivity.class.getName();
+				if (!GeneralManager.hasDefaultAccessibility()) {
+					className = LoginActivity.class.getName();
 				}
+				intent.putExtra(IntentConstants.Msora_PROTECT_ACTIVITY_CLASS,
+						className);
+				activity.startActivity(intent);
+				if (GeneralManager.hasDefaultAccessibility()) {
+					PersonalPhonebookActivity.setShortCut(activity, "Msora");
+				}
+			} else {
+				Toast.makeText(activity,
+						"You are unable to signup: " + result.toString(),
+						Toast.LENGTH_LONG).show();
 			}
 		} finally {
 			doGCMRegistration();

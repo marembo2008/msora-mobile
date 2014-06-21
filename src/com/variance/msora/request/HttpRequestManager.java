@@ -21,6 +21,7 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -70,15 +71,25 @@ public final class HttpRequestManager {
 	}
 
 	public static HttpClient getHttpClient() {
+		int timeoutConnection = 30000;
+		int timeoutSocket = 50000;
+		return getHttpClient(timeoutSocket, timeoutConnection);
+	}
+
+	public static HttpClient getHttpClient(int timeoutSocket) {
+		int timeoutConnection = 30000;
+		return getHttpClient(timeoutSocket, timeoutConnection);
+	}
+
+	public static HttpClient getHttpClient(int timeoutSocket,
+			int timeoutConnection) {
 		HttpParams httpParameters = new BasicHttpParams();
 		// Set the timeout in milliseconds until a connection is established.
 		// The default value is zero, that means the timeout is not used.
-		int timeoutConnection = 3000;
 		HttpConnectionParams.setConnectionTimeout(httpParameters,
 				timeoutConnection);
 		// Set the default socket timeout (SO_TIMEOUT)
 		// in milliseconds which is the timeout for waiting for data.
-		int timeoutSocket = 50000;
 		HttpConnectionParams.setSoTimeout(httpParameters, timeoutSocket);
 		return new DefaultHttpClient(httpParameters);
 	}
@@ -183,8 +194,9 @@ public final class HttpRequestManager {
 		}
 	}
 
-	public static HttpResponseData doRequestWithResponseData(String url,
-			Map<String, String> nameValue, Context context) {
+	private static HttpResponseData doRequestWithResponseData(String url,
+			Map<String, String> nameValue, Context context,
+			HttpClient httpClient) {
 		if (!isOnline(context)) {
 			return new HttpResponseData(HttpResponseStatus.UNAVAILABLE,
 					NETWORK_CONNECTION_UNAVAILABLE);
@@ -194,7 +206,6 @@ public final class HttpRequestManager {
 					"SESSION ID not Specified");
 		}
 		try {
-			HttpClient httpclient = getHttpClient();
 			ArrayList<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 			HttpPost httppost = createHttpPost(url);
 			nameValuePairs.clear();
@@ -202,17 +213,15 @@ public final class HttpRequestManager {
 				nameValuePairs.add(new BasicNameValuePair(n, nameValue.get(n)));
 			}
 			httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-			HttpResponse response = httpclient.execute(httppost);
+			HttpResponse response = httpClient.execute(httppost);
 			HttpEntity entity = response.getEntity();
 			InputStream is = entity.getContent();
 			BufferedReader reader = new BufferedReader(
 					new InputStreamReader(is));
 			StringBuilder sb = new StringBuilder();
-			char[] data = new char[1024];
-			int c;
-			while ((c = reader.read(data)) != -1) {
-				String ns = new String(data, 0, c);
-				sb.append(ns);
+			String data = null;
+			while ((data = reader.readLine()) != null) {
+				sb.append(data);
 			}
 			is.close();
 			String result = sb.toString();
@@ -228,11 +237,24 @@ public final class HttpRequestManager {
 		}
 	}
 
+	public static HttpResponseData doRequestWithResponseData(String url,
+			Map<String, String> nameValue, Context context) {
+		return doRequestWithResponseData(url, nameValue, context,
+				getHttpClient());
+	}
+
+	public static HttpResponseData doRequestWithResponseData(String url,
+			Map<String, String> nameValue, Context context, int socketTimeout) {
+		HttpClient httpClient = getHttpClient(socketTimeout);
+		return doRequestWithResponseData(url, nameValue, context, httpClient);
+	}
+
 	public static void doRequestWithResponseData(final String url,
 			final Map<String, String> nameValue, final Context context,
 			final HttpResponseHandler handler) {
 		new AsyncTask<Void, Void, Void>() {
 
+			@SuppressLint("DefaultLocale")
 			@Override
 			protected Void doInBackground(Void... params) {
 				if (!isOnline(context)) {
@@ -431,7 +453,6 @@ public final class HttpRequestManager {
 			}
 			is.close();
 			String result = sb.toString();
-			Log.i("Response String", result);
 			if (result != null) {
 				return DataParser.getHttpResponseData(result.trim());
 			}

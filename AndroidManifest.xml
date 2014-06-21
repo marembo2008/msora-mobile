@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.variance.mimiprotect"
-    android:versionCode="31"
+    android:versionCode="35"
     android:versionName="1.0.1.1" >
     <permission
         android:name="com.variance.msora.permission.C2D_MESSAGE"
         android:protectionLevel="signature" />
-    <uses-permission android:name="com.variance.msora.permission.C2D_MESSAGE" />
+    <uses-permission android:name="com.variance.mimiprotect.permission.C2D_MESSAGE" />
     <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.GET_TASKS" />

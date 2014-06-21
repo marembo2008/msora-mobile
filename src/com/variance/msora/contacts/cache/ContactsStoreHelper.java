@@ -16,7 +16,7 @@ public class ContactsStoreHelper extends SQLiteOpenHelper {
 
 	@Override
 	public void onCreate(SQLiteDatabase db) {
-		Log.e("CREate", "creating");
+		Log.e("onCreate", "creating database");
 		try {
 			db.execSQL(ContactsTable.CONTACTS_TABLE_CREATE_QUERY);
 			db.execSQL(ChatTable.CHAT_TABLE_CREATE_QUERY);
@@ -26,10 +26,26 @@ public class ContactsStoreHelper extends SQLiteOpenHelper {
 	}
 
 	@Override
-	public void onUpgrade(SQLiteDatabase db, int arg1, int arg2) {
-		db.execSQL("DROP TABLE IF EXISTS " + ChatTable.CHAT_TABLE_NAME);
-		db.execSQL("DROP TABLE IF EXISTS " + ContactsTable.CONTACTS_TABLE_NAME);
-		onCreate(db);
+	public void onUpgrade(SQLiteDatabase db, int oldDbVersion, int newDbVersion) {
+		try {
+			Log.i("onUpgrade: oldDbVersion", oldDbVersion + "");
+			Log.i("onUpgrade: newDbVersion", newDbVersion + "");
+			if (oldDbVersion != newDbVersion) {
+				Log.i("onUpgrade", "Upgrading sqlite database.....");
+				db.execSQL("DROP TABLE IF EXISTS " + ChatTable.CHAT_TABLE_NAME);
+				db.execSQL("DROP TABLE IF EXISTS "
+						+ ContactsTable.CONTACTS_TABLE_NAME);
+				onCreate(db);
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
 	}
 
+	@Override
+	public void onOpen(SQLiteDatabase db) {
+		super.onOpen(db);
+		Log.i("onOpen", "Database read only: " + db.isReadOnly());
+		Log.i("onOpen", "Database read only: " + db.isOpen());
+	}
 }

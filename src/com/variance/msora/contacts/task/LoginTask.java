@@ -88,7 +88,7 @@ public class LoginTask extends AsyncTask<String, Void, String> {
 					startmsora();
 				} else {
 					Toast.makeText(activity,
-							"Access Denied. Invalid details. please try again",
+							"Error: "+result,
 							Toast.LENGTH_LONG).show();
 				}
 			}
