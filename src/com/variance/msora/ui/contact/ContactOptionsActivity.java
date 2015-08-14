@@ -3,6 +3,7 @@ package com.variance.msora.ui.contact;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -210,7 +211,7 @@ public class ContactOptionsActivity extends AbstractActivity {
 		}
 	}
 
-	private static LinearLayout getView(ViewGroup parent, Context context) {
+	private LinearLayout getView(ViewGroup parent, Context context) {
 		LayoutInflater inflater = (LayoutInflater) context
 				.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 		LinearLayout layout = (LinearLayout) inflater.inflate(
@@ -230,13 +231,14 @@ public class ContactOptionsActivity extends AbstractActivity {
 		}
 	}
 
-	private static void addOnCallListener(View view, final String phone,
+	private void addOnCallListener(View view, final String phone,
 			final Context context) {
 		view.setOnClickListener(new OnClickListener() {
 
 			@Override
 			public void onClick(View v) {
 				PersonalPhonebookActivity.CURRENT_DIALLED_NUMBER = phone;
+				PersonalPhonebookActivity.CURRENT_CONTACT = contact;
 				Intent callIntent = new Intent(Intent.ACTION_CALL, Uri
 						.parse("tel:" + phone));
 				context.startActivity(callIntent);
@@ -244,7 +246,7 @@ public class ContactOptionsActivity extends AbstractActivity {
 		});
 	}
 
-	private static void showCallOptions(final String[] phones,
+	private void showCallOptions(final String[] phones,
 			final Context context) {
 		final Dialog d = new Dialog(context);
 		d.setTitle("Call Option");
@@ -353,7 +355,8 @@ public class ContactOptionsActivity extends AbstractActivity {
 
 			public void onClick(DialogInterface dialog, int which) {
 				String separator = ";";
-				if (android.os.Build.MANUFACTURER.toLowerCase().contains(
+				Locale locale = Locale.getDefault();
+				if (android.os.Build.MANUFACTURER.toLowerCase(locale).contains(
 						"samsung")) {
 					separator = ",";
 				}
